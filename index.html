@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>5×5 Trainer</title>
+<meta name="theme-color" content="#d9441c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="5×5">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<style>
+/* Layout: eine Spalte, feste Tab-Leiste unten, Timer-Leiste darüber */
+:root{
+  --bg:#f3f4f6; --surface:#ffffff; --ink:#15191f; --muted:#5d6672; --line:#dde1e6;
+  --accent:#d9441c; --accent-ink:#ffffff; --good:#1b7f4b;
+  --display:"Arial Narrow","Roboto Condensed","Helvetica Neue",system-ui,sans-serif;
+  --body:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --inset:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#11151a;--surface:#1a2027;--ink:#eef1f4;--muted:#9aa4b0;--line:#2b333c;--accent:#ff7a4d;--accent-ink:#1a0d07;--good:#4cc283;color-scheme:dark}
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;padding-bottom:calc(150px + var(--inset));-webkit-tap-highlight-color:transparent}
+main{max-width:560px;margin:0 auto;padding:16px;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+h1,h2,h3{font-family:var(--display);font-weight:700;margin:0;text-wrap:balance;letter-spacing:.01em}
+h1{font-size:34px;line-height:1.05}
+h3{font-size:20px}
+p{margin:0}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.num{font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.head{display:flex;flex-direction:column;gap:4px;margin:8px 0 16px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.row{display:flex;align-items:center;gap:10px}
+.chips{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.chip{flex:1 1 120px;min-height:48px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:6px 10px;text-align:left;display:flex;flex-direction:column}
+.chip b{font-family:var(--display);font-size:20px;line-height:1.1}
+.chip span{font-size:12px;color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.chip[aria-pressed="true"] span{color:inherit;opacity:.85}
+.ex-title{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:8px}
+.target{font-size:14px;color:var(--muted);white-space:nowrap}
+.set{display:grid;grid-template-columns:28px 1fr 1fr 48px;gap:8px;align-items:center;padding:4px 0}
+.set .n{font-family:var(--display);font-size:20px;color:var(--muted);text-align:center}
+.field{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:0 10px;min-height:48px;background:var(--bg)}
+.field input,.field textarea{width:100%;min-width:0;border:0;background:transparent;color:inherit;font:inherit;font-size:18px;font-weight:600;padding:10px 0;font-variant-numeric:tabular-nums}
+.field input:focus,.field textarea:focus{outline:none}
+.field:focus-within{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.field span{font-size:13px;color:var(--muted)}
+.done{width:48px;height:48px;border-radius:8px;border:1px solid var(--line);background:var(--bg);font-size:22px;line-height:1;color:var(--muted)}
+.set.is-done .done{background:var(--good);border-color:var(--good);color:#fff}
+.set.is-done .field{opacity:.65}
+.primary{width:100%;min-height:52px;border:0;border-radius:10px;background:var(--accent);color:var(--accent-ink);font-weight:600;font-size:17px}
+.ghost{min-height:44px;padding:0 14px;border:1px solid var(--line);background:var(--surface);border-radius:8px;font-weight:500}
+.danger{color:#c0392b}
+.plan-day ul{list-style:none;margin:10px 0 0;padding:0}
+.plan-day li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:1px solid var(--line)}
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px}
+.tile b{display:block;font-family:var(--display);font-size:30px;line-height:1.05}
+.tile span{font-size:12px;color:var(--muted)}
+svg text{fill:var(--muted);font-family:var(--body);font-size:11px}
+svg .val{fill:var(--ink);font-weight:600}
+svg .bar{fill:var(--accent)}
+svg .grid{stroke:var(--line);stroke-width:1}
+.hist,.pb{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--line)}
+.hist:first-of-type,.pb:first-of-type{border-top:0}
+.empty{padding:12px 0;color:var(--muted)}
+.cfg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.cfg label{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--muted)}
+.cfg .field{min-height:44px;padding:0 8px}
+.cfg input{font-size:16px;padding:8px 0}
+.cfg2{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.cfg2 label{display:flex;flex-direction:column;gap:2px;font-size:12px;color:var(--muted)}
+.exrow{border-top:1px solid var(--line);padding:10px 0}
+.exrow:first-of-type{border-top:0}
+textarea{resize:vertical;min-height:120px;font-size:13px!important;font-weight:400!important;font-family:ui-monospace,Menlo,monospace!important}
+#timer{position:fixed;left:0;right:0;bottom:calc(64px + var(--inset));background:var(--ink);color:var(--bg);padding:10px 16px;display:none}
+#timer.on{display:block}
+#timer .inner{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:10px}
+#timer .time{font-family:var(--display);font-size:32px;font-weight:700;min-width:76px}
+#timer button{min-height:40px;padding:0 12px;border-radius:8px;border:1px solid currentColor;background:transparent;color:inherit;font-weight:600}
+#timer .grow{flex:1;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+nav{position:fixed;left:0;right:0;bottom:0;height:calc(64px + var(--inset));padding-bottom:var(--inset);background:var(--surface);border-top:1px solid var(--line);display:flex}
+nav button{flex:1;border:0;background:transparent;font-family:var(--display);font-size:18px;font-weight:700;color:var(--muted);position:relative}
+nav button[aria-current="page"]{color:var(--accent)}
+nav button[aria-current="page"]::before{content:"";position:absolute;top:0;left:20%;right:20%;height:3px;background:var(--accent)}
+#toast{position:fixed;left:16px;right:16px;bottom:calc(140px + var(--inset));max-width:528px;margin:0 auto;background:var(--good);color:#fff;border-radius:10px;padding:12px 14px;font-weight:600;display:none}
+#toast.err{background:#c0392b}
+@media (prefers-reduced-motion:no-preference){.chip,.done,.primary{transition:background .15s,color .15s}}
+</style>
+</head>
+<body>
+<main id="view"></main>
+
+<div id="timer" role="timer" aria-label="Satzpause">
+  <div class="inner">
+    <div class="time num" id="tval">3:00</div>
+    <div class="grow">
+      <button type="button" data-act="t-add">+15 s</button>
+      <button type="button" data-act="t-skip">Fertig</button>
+    </div>
+  </div>
+</div>
+<div id="toast" role="status"></div>
+
+<nav aria-label="Bereiche">
+  <button type="button" data-tab="plan">Plan</button>
+  <button type="button" data-tab="train">Training</button>
+  <button type="button" data-tab="progress">Verlauf</button>
+  <button type="button" data-tab="settings">Einstellungen</button>
+</nav>
+
+<script>
+/* ---------- Standardprogramm: klassisches 5×5, zwei Workouts im Wechsel ---------- */
+function defaultProgram(){
+  return {
+    rest:180, failLimit:3, deload:10,
+    workouts:[
+      {name:"Workout A", ex:[
+        {n:"Kniebeuge", s:5, r:5, w:20, inc:2.5},
+        {n:"Bankdrücken", s:5, r:5, w:20, inc:2.5},
+        {n:"Langhantelrudern", s:5, r:5, w:30, inc:2.5}]},
+      {name:"Workout B", ex:[
+        {n:"Kniebeuge", s:5, r:5, w:20, inc:2.5},
+        {n:"Schulterdrücken", s:5, r:5, w:20, inc:2.5},
+        {n:"Kreuzheben", s:1, r:5, w:40, inc:5}]}
+    ]
+  };
+}
+const KEY = "fivebyfive.v1";
+let mem = {logs:[], next:{}, program:defaultProgram(), draft:null};
+function load(){
+  try{
+    const s = localStorage.getItem(KEY);
+    if(s){ const m = JSON.parse(s); const p = cleanProgram(m.program);
+      mem = {logs:Array.isArray(m.logs)?m.logs:[], next:m.next&&typeof m.next==="object"?m.next:{}, program:p||defaultProgram(), draft:m.draft||null}; }
+  }catch(e){}
+}
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(mem)); }catch(e){} }
+
+/* Programm prüfen und bereinigen (auch für importierte Programme) */
+function num(v,def){ const n = parseFloat(String(v).replace(",",".")); return isFinite(n)?n:def; }
+function clamp(v,a,b){ return Math.min(b,Math.max(a,v)); }
+function cleanProgram(p){
+  if(!p || !Array.isArray(p.workouts) || !p.workouts.length) return null;
+  const out = {rest:clamp(Math.round(num(p.rest,180)),10,900), failLimit:clamp(Math.round(num(p.failLimit,3)),1,10), deload:clamp(num(p.deload,10),0,50), workouts:[]};
+  for(const w of p.workouts.slice(0,7)){
+    if(!w || !Array.isArray(w.ex)) return null;
+    const ex = w.ex.slice(0,15).map(e=>({
+      n:String((e&&e.n)||"Übung").slice(0,40),
+      s:clamp(Math.round(num(e&&e.s,5)),1,10), r:clamp(Math.round(num(e&&e.r,5)),1,50),
+      w:clamp(num(e&&e.w,20),0,500), inc:clamp(num(e&&e.inc,2.5),0,50)}));
+    if(!ex.length) return null;
+    out.workouts.push({name:String(w.name||"Workout").slice(0,30), ex});
+  }
+  return out.workouts.length?out:null;
+}
+load();
+
+/* ---------- Zustand ---------- */
+let tab = "train";
+let day = 0;
+let session = null;
+let restSec = mem.program.rest;
+let timerEnd = 0, timerId = null;
+let dirty = false;
+
+function suggestDay(){
+  const l = mem.logs[mem.logs.length-1];
+  const n = mem.program.workouts.length;
+  if(!l || typeof l.w!=="number") return 0;
+  return (l.w+1)%n;
+}
+function buildSession(d){
+  const sets = mem.program.workouts[d].ex.map(ex=>{
+    const nx = mem.next[ex.n];
+    return Array.from({length:ex.s},()=>({w:nx?nx.w:ex.w, r:ex.r, done:false}));
+  });
+  return {day:d, sets};
+}
+function initSession(){
+  const dr = mem.draft;
+  const wk = mem.program.workouts[dr&&dr.day];
+  if(dr && wk && Array.isArray(dr.sets) && dr.sets.length===wk.ex.length && dr.sets.every((a,i)=>Array.isArray(a)&&a.length===wk.ex[i].s)){
+    day = dr.day; session = dr;
+  } else { day = suggestDay(); session = buildSession(day); mem.draft = null; }
+}
+initSession();
+function saveDraft(){ mem.draft = session.sets.some(a=>a.some(s=>s.done)) ? session : null; save(); }
+
+/* ---------- Hilfen ---------- */
+const $ = s=>document.querySelector(s);
+const esc = s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtDate = t=>new Date(t).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"});
+const fmtNum = n=>Math.round(n).toLocaleString("de-DE");
+const kg = n=>String(n).replace(".",",");
+let toastTimer;
+function toast(msg,err){ const t=$("#toast"); t.textContent=msg; t.className=err?"err":""; t.style.display="block"; clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.style.display="none",2600); }
+
+/* ---------- Ansichten ---------- */
+function viewPlan(){
+  const P = mem.program;
+  const days = P.workouts.map(w=>`<section class="card plan-day"><h3>${esc(w.name)}</h3>
+    <ul>${w.ex.map(e=>`<li><span>${esc(e.n)}</span><span class="num muted">${e.s} × ${e.r}</span></li>`).join("")}</ul></section>`).join("");
+  return `<div class="head"><h1>Dein Plan</h1><p class="muted">${P.workouts.length} Workouts im Wechsel, zum Beispiel an drei Tagen pro Woche mit einem Ruhetag dazwischen.</p></div>
+  <div class="stack">${days}
+  <section class="card"><h3>Steigerung</h3>
+    <p class="muted" style="margin-top:6px">Schaffst du alle Sätze mit allen Wiederholungen, steigt das Gewicht beim nächsten Mal um den eingestellten Schritt. Schaffst du es nicht, bleibt es gleich. Nach ${P.failLimit} Fehlversuchen in Folge sinkt es um ${kg(P.deload)} %.</p></section>
+  <section class="card"><h3>Hinweis</h3>
+    <p class="muted small" style="margin-top:6px">Mache vor den Arbeitssätzen ein paar leichte Aufwärmsätze. Bei Schmerzen, Vorerkrankungen oder als Einsteiger lass dich am besten vorher ärztlich oder von einem Trainer beraten und lerne die Technik zuerst mit wenig Gewicht.</p></section></div>`;
+}
+
+function viewTrain(){
+  const P = mem.program;
+  const chips = P.workouts.map((w,k)=>`<button type="button" class="chip" data-act="day" data-day="${k}" aria-pressed="${k===day}"><b>${esc(w.name)}</b><span>${w.ex.length} Übungen</span></button>`).join("");
+  const cards = P.workouts[day].ex.map((ex,i)=>{
+    const rows = session.sets[i].map((s,j)=>`
+      <div class="set ${s.done?"is-done":""}" data-i="${i}" data-j="${j}">
+        <div class="n">${j+1}</div>
+        <label class="field"><input type="text" inputmode="decimal" data-f="w" value="${esc(kg(s.w))}" aria-label="Gewicht Satz ${j+1}"><span>kg</span></label>
+        <label class="field"><input type="text" inputmode="numeric" data-f="r" value="${esc(s.r)}" aria-label="Wiederholungen Satz ${j+1}"><span>Wdh</span></label>
+        <button type="button" class="done" data-act="done" aria-pressed="${s.done}" aria-label="Satz ${j+1} erledigt">✓</button>
+      </div>`).join("");
+    return `<section class="card"><div class="ex-title"><h3>${esc(ex.n)}</h3><span class="target num">${ex.s} × ${ex.r}</span></div>${rows}</section>`;
+  }).join("");
+  const rests = [90,180,300].map(v=>`<button type="button" class="chip" style="flex:0 0 auto;min-height:44px;padding:6px 14px" data-act="rest" data-v="${v}" aria-pressed="${v===restSec}"><b class="num">${v} s</b></button>`).join("");
+  return `<div class="head"><h1>Training</h1><p class="muted">Satz abhaken startet die Pause. Die Gewichte steigen automatisch.</p></div>
+  <div class="chips">${chips}</div>
+  <div class="row" style="margin-bottom:12px;flex-wrap:wrap"><span class="muted">Pause</span><div class="chips" style="margin:0">${rests}</div></div>
+  <div class="stack">${cards}
+    <button type="button" class="primary" data-act="finish">Einheit speichern</button></div>`;
+}
+
+function viewProgress(){
+  const logs = mem.logs;
+  const weekAgo = Date.now()-7*864e5;
+  const week = logs.filter(l=>l.t>=weekAgo).length;
+  const total = logs.reduce((a,l)=>a+l.vol,0);
+  const tiles = `<div class="tiles">
+    <div class="tile"><b class="num">${logs.length}</b><span>Einheiten</span></div>
+    <div class="tile"><b class="num">${week}</b><span>letzte 7 Tage</span></div>
+    <div class="tile"><b class="num">${fmtNum(total/1000)} t</b><span>bewegt gesamt</span></div></div>`;
+  if(!logs.length){
+    return `<div class="head"><h1>Verlauf</h1></div>${tiles}
+      <section class="card" style="margin-top:12px"><p class="empty">Noch keine Einheit gespeichert. Hake im Training Sätze ab und speichere die Einheit, dann erscheint hier dein Verlauf.</p></section>`;
+  }
+  const last = logs.slice(-8);
+  const max = Math.max(...last.map(l=>l.vol),1);
+  const W=320,H=150,pad=24,step=(W-2*pad)/last.length,bw=Math.min(28,step-8);
+  const bars = last.map((l,i)=>{
+    const h = Math.max(2,(l.vol/max)*(H-pad-28));
+    const x = pad+i*step+(step-bw)/2, y = H-pad-h;
+    return `<rect class="bar" x="${x}" y="${y}" width="${bw}" height="${h}" rx="3"/>
+      <text class="val" x="${x+bw/2}" y="${y-5}" text-anchor="middle">${fmtNum(l.vol)}</text>
+      <text x="${x+bw/2}" y="${H-8}" text-anchor="middle">${fmtDate(l.t)}</text>`;
+  }).join("");
+  const chart = `<svg viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="Trainingsvolumen der letzten Einheiten in Kilogramm"><line class="grid" x1="${pad}" x2="${W-pad}" y1="${H-pad}" y2="${H-pad}"/>${bars}</svg>`;
+  const best = {};
+  logs.forEach(l=>l.sets.forEach(s=>{ if(!best[s.n]||s.w>best[s.n].w) best[s.n]={w:s.w,r:s.r}; }));
+  const pbs = Object.entries(best).sort((a,b)=>b[1].w-a[1].w).map(([n,b])=>`<div class="pb"><span>${esc(n)}</span><span class="num">${kg(b.w)} kg × ${b.r}</span></div>`).join("");
+  const hist = logs.slice().reverse().slice(0,10).map(l=>`<div class="hist"><span><b>${fmtDate(l.t)}</b> · ${esc(l.wn||"Workout")}</span><span class="num muted">${l.sets.length} Sätze · ${fmtNum(l.vol)} kg</span></div>`).join("");
+  return `<div class="head"><h1>Verlauf</h1></div>
+  <div class="stack">${tiles}
+    <section class="card"><h3>Volumen je Einheit (kg)</h3>${chart}</section>
+    <section class="card"><h3>Bestwerte</h3>${pbs}</section>
+    <section class="card"><h3>Letzte Einheiten</h3>${hist}</section>
+    <button type="button" class="ghost danger" data-act="reset-logs">Verlauf löschen</button></div>`;
+}
+
+function numField(label,path,val,mode){
+  return `<label>${label}<span class="field"><input type="text" inputmode="${mode||"decimal"}" data-p="${path}" value="${esc(kg(val))}"></span></label>`;
+}
+function viewSettings(){
+  const P = mem.program;
+  const wk = P.workouts.map((w,wi)=>{
+    const exs = w.ex.map((e,ei)=>`<div class="exrow">
+      <div class="row"><label class="field" style="flex:1"><input type="text" data-p="w.${wi}.${ei}.n" value="${esc(e.n)}" aria-label="Name der Übung" maxlength="40"></label>
+        <button type="button" class="ghost danger" data-act="del-ex" data-wi="${wi}" data-ei="${ei}" aria-label="Übung entfernen">✕</button></div>
+      <div class="cfg">${numField("Sätze",`w.${wi}.${ei}.s`,e.s,"numeric")}${numField("Wdh",`w.${wi}.${ei}.r`,e.r,"numeric")}${numField("Start kg",`w.${wi}.${ei}.w`,e.w)}${numField("Schritt kg",`w.${wi}.${ei}.inc`,e.inc)}</div></div>`).join("");
+    return `<section class="card"><div class="row" style="margin-bottom:6px"><label class="field" style="flex:1"><input type="text" data-p="w.${wi}.name" value="${esc(w.name)}" aria-label="Name des Workouts" maxlength="30"></label>
+      ${P.workouts.length>1?`<button type="button" class="ghost danger" data-act="del-wk" data-wi="${wi}" aria-label="Workout entfernen">✕</button>`:""}</div>
+      ${exs}<button type="button" class="ghost" style="margin-top:8px;width:100%" data-act="add-ex" data-wi="${wi}">Übung hinzufügen</button></section>`;
+  }).join("");
+  return `<div class="head"><h1>Einstellungen</h1><p class="muted">Änderungen gelten ab dem nächsten Training. Das Gewicht der letzten Einheit wird mit dem Start-Gewicht überschrieben, wenn du unten "Gewichte zurücksetzen" wählst.</p></div>
+  <div class="stack">
+    <section class="card"><h3>Allgemein</h3><div class="cfg2" style="margin-top:8px">
+      ${numField("Pause (Sek.)","rest",P.rest,"numeric")}${numField("Fehlversuche bis Deload","failLimit",P.failLimit,"numeric")}${numField("Deload (%)","deload",P.deload)}</div></section>
+    ${wk}
+    <button type="button" class="ghost" data-act="add-wk">Workout hinzufügen</button>
+    <section class="card"><h3>Programm teilen</h3>
+      <p class="muted small" style="margin:6px 0 8px">Kopiere den Code und schicke ihn einem Freund. Dort fügst du ihn ein und tippst auf "Einlesen". Dein Verlauf bleibt dabei unverändert.</p>
+      <label class="field"><textarea id="share" spellcheck="false" aria-label="Programmcode">${esc(JSON.stringify(P))}</textarea></label>
+      <div class="row" style="margin-top:8px;flex-wrap:wrap"><button type="button" class="ghost" data-act="copy">Kopieren</button><button type="button" class="ghost" data-act="import">Einlesen</button></div></section>
+    <section class="card"><h3>Zurücksetzen</h3><div class="row" style="margin-top:8px;flex-wrap:wrap">
+      <button type="button" class="ghost" data-act="reset-weights">Gewichte zurücksetzen</button>
+      <button type="button" class="ghost danger" data-act="reset-prog">Standardprogramm</button></div></section>
+    <p class="muted small">Alle Daten bleiben auf diesem Gerät. Zum Installieren: iPhone in Safari auf Teilen, dann "Zum Home-Bildschirm". Android in Chrome auf das Menü, dann "App installieren".</p>
+  </div>`;
+}
+
+function render(){
+  $("#view").innerHTML = tab==="plan"?viewPlan():tab==="train"?viewTrain():tab==="progress"?viewProgress():viewSettings();
+  document.querySelectorAll("nav button").forEach(b=>{ if(b.dataset.tab===tab) b.setAttribute("aria-current","page"); else b.removeAttribute("aria-current"); });
+}
+
+/* ---------- Timer ---------- */
+function beep(){
+  try{ const C = window.AudioContext||window.webkitAudioContext; const c = new C();
+    const o = c.createOscillator(), g = c.createGain(); o.frequency.value = 880; g.gain.value = .15;
+    o.connect(g); g.connect(c.destination); o.start(); o.stop(c.currentTime+.4); }catch(e){}
+  try{ navigator.vibrate && navigator.vibrate([200,100,200]); }catch(e){}
+}
+function tick(){
+  const left = Math.max(0,Math.ceil((timerEnd-Date.now())/1000));
+  $("#tval").textContent = Math.floor(left/60)+":"+String(left%60).padStart(2,"0");
+  if(left<=0){ stopTimer(); beep(); }
+}
+function startTimer(sec){ timerEnd = Date.now()+sec*1000; $("#timer").classList.add("on"); clearInterval(timerId); timerId = setInterval(tick,250); tick(); }
+function stopTimer(){ clearInterval(timerId); timerId=null; $("#timer").classList.remove("on"); }
+
+/* ---------- Ereignisse ---------- */
+function setTab(t){
+  tab = t;
+  if(t==="train" && dirty){ dirty=false; mem.draft=null; initSession(); restSec=mem.program.rest; }
+  render(); window.scrollTo(0,0);
+}
+function commitProgram(){ dirty = true; mem.draft = null; save(); }
+
+document.addEventListener("click",e=>{
+  const tb = e.target.closest("[data-tab]");
+  if(tb){ setTab(tb.dataset.tab); return; }
+  const a = e.target.closest("[data-act]"); if(!a) return;
+  const act = a.dataset.act, P = mem.program;
+  if(act==="day"){ day=+a.dataset.day; session=buildSession(day); mem.draft=null; save(); render(); }
+  else if(act==="rest"){ restSec=+a.dataset.v; render(); }
+  else if(act==="done"){
+    const row = a.closest(".set"); const s = session.sets[+row.dataset.i][+row.dataset.j];
+    s.done = !s.done; row.classList.toggle("is-done",s.done); a.setAttribute("aria-pressed",s.done);
+    saveDraft(); if(s.done) startTimer(restSec);
+  }
+  else if(act==="t-add"){ timerEnd += 15000; tick(); }
+  else if(act==="t-skip"){ stopTimer(); }
+  else if(act==="finish"){
+    const sets=[]; let vol=0;
+    P.workouts[day].ex.forEach((ex,i)=>{
+      const ss = session.sets[i];
+      if(!ss.some(x=>x.done)) return;
+      ss.forEach(x=>{ if(x.done){ const w=num(x.w,0), r=parseInt(x.r,10)||0; sets.push({n:ex.n,w,r}); vol+=w*r; }});
+      const w0 = num(ss[0].w,ex.w);
+      const ok = ss.every(x=>x.done && (parseInt(x.r,10)||0)>=ex.r);
+      const f = (mem.next[ex.n]&&mem.next[ex.n].f)||0;
+      let nw=w0, nf=0;
+      if(ok){ nw=w0+ex.inc; }
+      else { nf=f+1; if(nf>=P.failLimit){ nw=Math.max(0,Math.round(w0*(1-P.deload/100)/2.5)*2.5); nf=0; } }
+      mem.next[ex.n]={w:nw,f:nf};
+    });
+    if(!sets.length){ toast("Hake mindestens einen Satz ab.",true); return; }
+    mem.logs.push({t:Date.now(),w:day,wn:P.workouts[day].name,vol,sets});
+    mem.draft=null; stopTimer(); day=suggestDay(); session=buildSession(day); save();
+    tab="progress"; render(); window.scrollTo(0,0); toast("Einheit gespeichert. Nächstes Mal mit neuem Gewicht.");
+  }
+  else if(act==="reset-logs"){
+    if(a.dataset.sure){ mem.logs=[]; save(); render(); }
+    else { a.dataset.sure="1"; a.textContent="Wirklich löschen? Nochmal tippen"; }
+  }
+  else if(act==="add-ex"){ P.workouts[+a.dataset.wi].ex.push({n:"Neue Übung",s:3,r:10,w:10,inc:2.5}); commitProgram(); render(); }
+  else if(act==="del-ex"){ const w=P.workouts[+a.dataset.wi]; if(w.ex.length>1){ w.ex.splice(+a.dataset.ei,1); commitProgram(); render(); } else toast("Ein Workout braucht mindestens eine Übung.",true); }
+  else if(act==="add-wk"){ if(P.workouts.length<7){ P.workouts.push({name:"Workout "+String.fromCharCode(65+P.workouts.length),ex:[{n:"Neue Übung",s:3,r:10,w:10,inc:2.5}]}); commitProgram(); render(); } }
+  else if(act==="del-wk"){ P.workouts.splice(+a.dataset.wi,1); commitProgram(); render(); }
+  else if(act==="copy"){
+    const ta=$("#share"); ta.select();
+    (navigator.clipboard&&navigator.clipboard.writeText?navigator.clipboard.writeText(ta.value):Promise.reject()).then(()=>toast("Code kopiert.")).catch(()=>{ try{ document.execCommand("copy"); toast("Code kopiert."); }catch(x){ toast("Markiere den Text und kopiere ihn von Hand.",true); } });
+  }
+  else if(act==="import"){
+    try{
+      const p = cleanProgram(JSON.parse($("#share").value.trim()));
+      if(!p) throw 0;
+      mem.program = p; mem.next = {}; commitProgram(); render(); toast("Programm eingelesen.");
+    }catch(x){ toast("Dieser Code ist kein gültiges Programm.",true); }
+  }
+  else if(act==="reset-weights"){ mem.next={}; commitProgram(); toast("Gewichte zurückgesetzt."); }
+  else if(act==="reset-prog"){
+    if(a.dataset.sure){ mem.program=defaultProgram(); mem.next={}; commitProgram(); render(); toast("Standardprogramm geladen."); }
+    else { a.dataset.sure="1"; a.textContent="Wirklich? Nochmal tippen"; }
+  }
+});
+
+document.addEventListener("input",e=>{
+  const t = e.target;
+  if(t.dataset.f){
+    const row = t.closest(".set");
+    session.sets[+row.dataset.i][+row.dataset.j][t.dataset.f] = t.value; saveDraft(); return;
+  }
+  if(t.dataset.p){
+    const k = t.dataset.p.split("."), P = mem.program;
+    if(k[0]==="w"){
+      const wk = P.workouts[+k[1]];
+      if(k.length===3){ wk.name = t.value.slice(0,30); }
+      else { const ex = wk.ex[+k[2]], f = k[3];
+        if(f==="n") ex.n = t.value.slice(0,40);
+        else { const v = num(t.value,NaN); if(isFinite(v)) ex[f] = f==="s"?clamp(Math.round(v),1,10):f==="r"?clamp(Math.round(v),1,50):clamp(v,0,500); } }
+    } else { const v = num(t.value,NaN); if(isFinite(v)) P[k[0]] = k[0]==="rest"?clamp(Math.round(v),10,900):k[0]==="failLimit"?clamp(Math.round(v),1,10):clamp(v,0,50); }
+    dirty = true; mem.draft = null; save();
+    const ta = $("#share"); if(ta) ta.value = JSON.stringify(P);
+  }
+});
+
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden && timerId) tick(); });
+if("serviceWorker" in navigator && location.protocol.startsWith("http")){ window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{})); }
+render();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "5×5 Trainer",
+  "short_name": "5×5",
+  "description": "Krafttraining nach dem 5×5-Prinzip mit Gewichtssteigerung, Pausentimer und Verlauf.",
+  "lang": "de",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#11151a",
+  "theme_color": "#d9441c",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png"},
+    {"src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
